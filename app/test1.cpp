@@ -71,4 +71,20 @@ int main()
     print_matrix(vvt);
     std::cout << std::endl;
 
+    small_la::small_matrix<double, 3, 1> x;
+    x(0, 0) = 0.0;
+    x(1, 0) = 1.0;
+    x(2, 0) = 2.0;
+
+    std::cout << small_la::dot(x, x) << std::endl;
+
+    auto y_arr = small_la::MakeVector<double, 3>({0.0, 1.0, 2.0});
+    auto M_arr = small_la::MakeMatrix<double, 2, 3>(
+        {
+            0.0, 1.0, 2.0,
+            3.0, 4.0, 5.0
+        }
+        );
+    print_matrix(M_arr);
+
 }

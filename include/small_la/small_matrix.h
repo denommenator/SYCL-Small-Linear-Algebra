@@ -12,12 +12,22 @@
 namespace small_la
 {
 
-constexpr size_t packed_size(const size_t num_rows, const size_t num_cols)
+template<int num_rows, int num_cols, bool col_major_storage>
+int flatten_index(const size_t row, const size_t col)
+{
+    if constexpr(col_major_storage)
+    {
+        return row + num_rows * col;
+    }
+    return col + num_cols * row;
+}
+
+constexpr int packed_size(const int num_rows, const int num_cols)
 {
     //static_assert(num_rows <= 4, "num rows must be less than 4");
     //static_assert(num_cols <= 4, "num cols must be less than 4");
 
-    const size_t size_required = num_rows * num_cols;
+    const int size_required = num_rows * num_cols;
 
     if(size_required <= 1)
         return 1;
@@ -49,12 +59,12 @@ public:
 
     Tscalar_t& operator()(const size_t row, const size_t col)
     {
-        return data[flatten_index(row, col)];
+        return data[flatten_index<num_rows, num_cols, col_major_storage>(row, col)];
     }
 
     const Tscalar_t& operator()(const size_t row, const size_t col) const
     {
-        return data[flatten_index(row, col)];
+        return data[flatten_index<num_rows, num_cols, col_major_storage>(row, col)];
     }
 
     small_matrix<scalar_t, num_cols, num_rows, col_major_storage> transpose()
@@ -65,15 +75,6 @@ public:
             for(int j = 0; j < num_cols; j++)
                 ret(j, i) = (*this)(i, j);
         return ret;
-    }
-private:
-    static int flatten_index(const size_t row, const size_t col)
-    {
-        if constexpr(col_major_storage)
-        {
-            return row + num_rows * col;
-        }
-        return col + num_cols * row;
     }
 
 public:
@@ -163,6 +164,45 @@ small_matrix<Tscalar_t, Tnum_rowsA, Tnum_colsB, Tcol_major_storageA> operator*(
     }
     return ret;
 
+}
+
+template<class Tscalar_t, int Tnum_rows, bool col_major_storageA, bool col_major_storageB>
+Tscalar_t dot(
+    const small_matrix<Tscalar_t, Tnum_rows, 1, col_major_storageA>& v,
+    const small_matrix<Tscalar_t, Tnum_rows, 1, col_major_storageB>& w
+    )
+{
+    Tscalar_t ret = 0;
+    for(int i = 0; i < v.num_rows; i++)
+    {
+        ret += v(i, 0) * w(i, 0);
+    }
+    return ret;
+}
+
+template<class Tscalar_t, int Tnum_rows>
+small_matrix<Tscalar_t, Tnum_rows, 1> MakeVector(std::array<Tscalar_t, Tnum_rows> entries)
+{
+    small_matrix<Tscalar_t, Tnum_rows, 1> ret;
+    for(int i = 0; i < Tnum_rows; i++)
+    {
+        ret(i, 0) = entries[i];
+    }
+    return ret;
+}
+
+template<class Tscalar_t, int Tnum_rows, int Tnum_cols>
+small_matrix<Tscalar_t, Tnum_rows, Tnum_cols> MakeMatrix(std::array<Tscalar_t, Tnum_rows * Tnum_cols> entries)
+{
+    small_matrix<Tscalar_t, Tnum_rows, Tnum_cols> ret;
+    for(int i = 0; i < Tnum_rows; i++)
+    {
+        for(int j = 0; j < Tnum_cols; j++)
+        {
+            ret(i, j) = entries[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
+        }
+    }
+    return ret;
 }
 
 }
