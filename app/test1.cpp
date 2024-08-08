@@ -3,27 +3,49 @@
 //
 
 #include <sycl/sycl.hpp>
-#include <small_la/column_matrix.h>
-#include <small_la/sycl_column_matrix.h>
+#include <small_la/small_matrix.h>
 
 #include <iostream>
 
 
+template<class mat_class>
+void print_matrix(mat_class A)
+{
+    for(size_t i = 0; i < A.num_rows; i++)
+    {
+        for(size_t j = 0; j < A.num_cols; j++)
+        {
+            std::cout << A(i, j) << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
 
 int main()
 {
     std::cout << "working!" << std::endl;
 
+    sycl::mfloat2 m;
     constexpr size_t numrows = 3;
-    constexpr size_t numcols = 3;
+    constexpr size_t numcols = 2;
 
-    small_la::matrix3x3d v;
-    v.columns[0] = {0.0, 1.0, 2.0};
-    v.columns[1] = {3.0, 4.0, 5.0};
-    v.columns[2] = {6.0, 7.0, 8.0};
+    small_la::small_matrix<double, numrows, numcols> v;
 
-    v *= 2;
+    for(size_t i = 0; i < v.num_rows; i++)
+    {
+        for(size_t j = 0; j < v.num_cols; j++)
+        {
+            v(i, j) = i + numrows * j;
+        }
+    }
 
+
+    v = 2.0 * v;
+    v = -v;
+
+    print_matrix(v);
+    /*
     for(size_t i = 0; i < numrows; i++)
     {
         for(size_t j = 0; j < numcols; j++)
@@ -32,5 +54,21 @@ int main()
         }
         std::cout << std::endl;
     }
+
+    */
+
+
+    auto w = v.transpose();
+    auto vtv = w * v;
+    auto vvt = v * w;
+
+    print_matrix(w);
+    std::cout << std::endl;
+
+    print_matrix(vtv);
+    std::cout << std::endl;
+
+    print_matrix(vvt);
+    std::cout << std::endl;
 
 }
