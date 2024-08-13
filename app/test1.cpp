@@ -3,7 +3,7 @@
 //
 
 #include <sycl/sycl.hpp>
-#include <small_la/small_matrix.h>
+#include <small_la/small_matrix.hpp>
 
 #include <iostream>
 
