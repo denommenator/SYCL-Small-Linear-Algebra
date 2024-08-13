@@ -67,6 +67,16 @@ public:
         return data[flatten_index<num_rows, num_cols, col_major_storage>(row, col)];
     }
 
+    Tscalar_t& operator()(const size_t index)
+    {
+        return data[index];
+    }
+
+    const Tscalar_t& operator()(const size_t index) const
+    {
+        return data[index];
+    }
+
     small_matrix<scalar_t, num_cols, num_rows, col_major_storage> transpose()
     {
         using ret_t = small_matrix<scalar_t, num_cols, num_rows, col_major_storage>;
