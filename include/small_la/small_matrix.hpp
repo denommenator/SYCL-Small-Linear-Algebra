@@ -56,7 +56,19 @@ private:
     using this_t = small_matrix<scalar_t, num_rows, num_cols, col_major_storage>;
     storage_t data;
 public:
-
+    ///TODO figure out if there is a workaround to the
+    ///trivially copiable type in sycl::buffers to support
+    ///implicit conversions
+    // small_matrix(std::array<Tscalar_t, Tnum_rows * Tnum_cols> entries)
+    // {
+    //     for(int i = 0; i < Tnum_rows; i++)
+    //     {
+    //         for(int j = 0; j < Tnum_cols; j++)
+    //         {
+    //             data[flatten_index<num_rows, num_cols, col_major_storage>(i, j)] = entries[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
+    //         }
+    //     }
+    // }
     Tscalar_t& operator()(const size_t row, const size_t col)
     {
         return data[flatten_index<num_rows, num_cols, col_major_storage>(row, col)];
@@ -85,6 +97,22 @@ public:
             for(int j = 0; j < num_cols; j++)
                 ret(j, i) = (*this)(i, j);
         return ret;
+    }
+
+    //TODO mark this as only available for integer scalar_t
+    bool operator==(const small_matrix& other) const
+    {
+        for(int i = 0; i < num_rows; ++i)
+        {
+            for(int j = 0; j < num_cols; ++j)
+            {
+                if((*this)(i,j) != other(i,j))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
 public:
