@@ -99,8 +99,8 @@ public:
         return ret;
     }
 
-    //TODO mark this as only available for integer scalar_t
-    bool operator==(const small_matrix& other) const
+    template<class TScalar_dummy = scalar_t>
+    typename std::enable_if_t<std::is_integral_v<TScalar_dummy>, bool> operator==(const small_matrix& other) const
     {
         for(int i = 0; i < num_rows; ++i)
         {
@@ -113,6 +113,21 @@ public:
             }
         }
         return true;
+    }
+
+    static this_t Zero()
+    {
+        const static this_t ret = 0;
+        return ret;
+    }
+
+    template<int Tnum_rows_dummy = num_rows, int Tnum_cols_dummy = num_cols>
+    static std::enable_if_t<Tnum_rows_dummy == Tnum_cols_dummy, this_t> Identity()
+    {
+        this_t ret = Zero();
+        for(int i = 0; i < num_rows; ++i)
+            ret(i, i) = 1;
+        return ret;
     }
 
 public:
