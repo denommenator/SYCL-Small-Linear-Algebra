@@ -117,7 +117,9 @@ public:
 
     static this_t Zero()
     {
-        const static this_t ret = 0;
+        //TODO optimize this with static variable
+        this_t ret;
+        ret.data = 0;
         return ret;
     }
 
