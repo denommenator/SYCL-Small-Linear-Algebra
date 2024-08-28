@@ -78,12 +78,10 @@ int main()
 
     std::cout << small_la::dot(x, x) << std::endl;
 
-    auto y_arr = small_la::MakeVector<double, 3>({0.0, 1.0, 2.0});
-    auto M_arr = small_la::MakeMatrix<double, 2, 3>(
-        {
+    auto y_arr = small_la::small_matrix<double, 3, 1>(0.0, 1.0, 2.0);
+    auto M_arr = small_la::small_matrix<double, 2, 3>(
             0.0, 1.0, 2.0,
             3.0, 4.0, 5.0
-        }
         );
     print_matrix(M_arr);
 

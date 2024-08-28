@@ -51,10 +51,34 @@ public:
     using scalar_t = Tscalar_t;
     static constexpr int num_rows = Tnum_rows;
     static constexpr int num_cols = Tnum_cols;
+
 private:
     using storage_t = sycl::vec<scalar_t, packed_size(num_rows, num_cols)>;
     using this_t = small_matrix<scalar_t, num_rows, num_cols, col_major_storage>;
     storage_t data;
+
+public:
+    template<typename... Tscalar_dummy>
+    explicit small_matrix(Tscalar_dummy&&... entries) : data(0)
+    {
+        static_assert(sizeof...(entries) == num_rows * num_cols, "Wrong number of entries to a matrix");
+        std::array<scalar_t, num_rows * num_cols> entries_arr = { std::forward<scalar_t>(entries)... };
+        for(int i = 0; i < Tnum_rows; i++)
+        {
+            for(int j = 0; j < Tnum_cols; j++)
+            {
+                data[flatten_index<num_rows, num_cols, col_major_storage>(i, j)] = entries_arr[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
+            }
+        }
+    }
+public:
+    small_matrix() = default;
+    ~small_matrix() = default;
+    small_matrix(const small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>&) = default;
+    small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>& operator=(const small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>& ) = default;
+    small_matrix(small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>&&) = default;
+    small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>& operator=(small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>&& ) = default;
+
 public:
     ///TODO figure out if there is a workaround to the
     ///trivially copiable type in sycl::buffers to support
@@ -79,12 +103,14 @@ public:
         return data[flatten_index<num_rows, num_cols, col_major_storage>(row, col)];
     }
 
-    Tscalar_t& operator()(const size_t index)
+    template<int num_rows_dummy = num_rows, int num_cols_dummy = num_cols>
+    std::enable_if_t<num_rows_dummy == 1 || num_cols_dummy == 1, Tscalar_t&> operator()(const size_t index)
     {
         return data[index];
     }
 
-    const Tscalar_t& operator()(const size_t index) const
+    template<int num_rows_dummy = num_rows, int num_cols_dummy = num_cols>
+    std::enable_if_t<num_rows_dummy == 1 || num_cols_dummy == 1, const Tscalar_t&> operator()(const size_t index) const
     {
         return data[index];
     }
@@ -92,7 +118,7 @@ public:
     small_matrix<scalar_t, num_cols, num_rows, col_major_storage> transpose()
     {
         using ret_t = small_matrix<scalar_t, num_cols, num_rows, col_major_storage>;
-        ret_t ret;
+        ret_t ret = ret_t::Zero();
         for(int i = 0; i < num_rows; i++)
             for(int j = 0; j < num_cols; j++)
                 ret(j, i) = (*this)(i, j);
@@ -100,7 +126,7 @@ public:
     }
 
     template<class TScalar_dummy = scalar_t>
-    typename std::enable_if_t<std::is_integral_v<TScalar_dummy>, bool> operator==(const small_matrix& other) const
+    std::enable_if_t<std::is_integral_v<TScalar_dummy>, bool> operator==(const small_matrix& other) const
     {
         for(int i = 0; i < num_rows; ++i)
         {
@@ -115,7 +141,8 @@ public:
         return true;
     }
 
-    static this_t Zero()
+private:
+    static this_t MakeZero()
     {
         //TODO optimize this with static variable
         this_t ret;
@@ -124,12 +151,25 @@ public:
     }
 
     template<int Tnum_rows_dummy = num_rows, int Tnum_cols_dummy = num_cols>
-    static std::enable_if_t<Tnum_rows_dummy == Tnum_cols_dummy, this_t> Identity()
+    static std::enable_if_t<Tnum_rows_dummy == Tnum_cols_dummy, this_t> MakeIdentity()
     {
-        this_t ret = Zero();
+        this_t ret = MakeZero();
         for(int i = 0; i < num_rows; ++i)
             ret(i, i) = 1;
         return ret;
+    }
+
+public:
+    static this_t Zero()
+    {
+        const static this_t zero = MakeZero();
+        return zero;
+    }
+
+    static this_t Identity()
+    {
+        const static this_t I = MakeIdentity();
+        return I;
     }
 
 public:
@@ -204,7 +244,7 @@ small_matrix<Tscalar_t, Tnum_rowsA, Tnum_colsB, Tcol_major_storageA> operator*(
     const small_matrix<Tscalar_t, Tnum_rowsB, Tnum_colsB, Tcol_major_storageB>& B)
 {
     static_assert(Tnum_colsA == Tnum_rowsB, "Dimensions incorrect for matrix multiplication!");
-    small_matrix<Tscalar_t, Tnum_rowsA, Tnum_colsB, Tcol_major_storageA> ret;
+    small_matrix<Tscalar_t, Tnum_rowsA, Tnum_colsB, Tcol_major_storageA> ret = small_matrix<Tscalar_t, Tnum_rowsA, Tnum_colsB, Tcol_major_storageA>::Zero();
     for(int i = 0; i < Tnum_rowsA; i ++)
     {
         for(int j = 0; j < Tnum_colsB; j++)
@@ -235,30 +275,31 @@ Tscalar_t dot(
     return ret;
 }
 
-template<class Tscalar_t, int Tnum_rows>
-small_matrix<Tscalar_t, Tnum_rows, 1> MakeVector(std::array<Tscalar_t, Tnum_rows> entries)
-{
-    small_matrix<Tscalar_t, Tnum_rows, 1> ret;
-    for(int i = 0; i < Tnum_rows; i++)
-    {
-        ret(i, 0) = entries[i];
-    }
-    return ret;
-}
-
-template<class Tscalar_t, int Tnum_rows, int Tnum_cols>
-small_matrix<Tscalar_t, Tnum_rows, Tnum_cols> MakeMatrix(std::array<Tscalar_t, Tnum_rows * Tnum_cols> entries)
-{
-    small_matrix<Tscalar_t, Tnum_rows, Tnum_cols> ret;
-    for(int i = 0; i < Tnum_rows; i++)
-    {
-        for(int j = 0; j < Tnum_cols; j++)
-        {
-            ret(i, j) = entries[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
-        }
-    }
-    return ret;
-}
+//template<typename... Ts, class Tscalar_t, int Tnum_rows>
+//small_matrix<Tscalar_t, Tnum_rows, 1> MakeVector(Ts&&... entries)
+//{
+//    return small_matrix<Tscalar_t, Tnum_rows, 1>(entries);
+//    //small_matrix<Tscalar_t, Tnum_rows, 1> ret;
+//    //for(int i = 0; i < Tnum_rows; i++)
+//    //{
+//    //    ret(i, 0) = entries[i];
+//    //}
+//    //return ret;
+//}
+//
+//template<typename... Ts, class Tscalar_t, int Tnum_rows, int Tnum_cols>
+//small_matrix<Tscalar_t, Tnum_rows, Tnum_cols> MakeMatrix(Ts&&... entries)
+//{
+//    small_matrix<Tscalar_t, Tnum_rows, Tnum_cols> ret;
+//    for(int i = 0; i < Tnum_rows; i++)
+//    {
+//        for(int j = 0; j < Tnum_cols; j++)
+//        {
+//            ret(i, j) = entries[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
+//        }
+//    }
+//    return ret;
+//}
 
 }
 
