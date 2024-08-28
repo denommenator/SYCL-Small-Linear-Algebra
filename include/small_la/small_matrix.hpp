@@ -299,6 +299,31 @@ Tscalar_t dot(
     return ret;
 }
 
+template<class Tscalar_t, int Tnum_rows, bool col_major_storage>
+std::enable_if_t<Tnum_rows == 2, small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>> inverse(
+    const small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& A
+    )
+{
+    using scalar_t = Tscalar_t;
+    using ret_t = small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>;
+
+    ret_t ret = ret_t::Zero();
+
+    scalar_t a = A(0,0);
+    scalar_t b = A(0,1);
+    scalar_t c = A(1,0);
+    scalar_t d = A(1,1);
+
+    scalar_t det;
+    ret(0,0) = d / det;
+    ret(0,1) = -b / det;
+    ret(1,0) = -c / det;
+    ret(1,1) = a / det;
+
+    return ret;
+
+}
+
 //template<typename... Ts, class Tscalar_t, int Tnum_rows>
 //small_matrix<Tscalar_t, Tnum_rows, 1> MakeVector(Ts&&... entries)
 //{
