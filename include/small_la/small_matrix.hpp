@@ -80,19 +80,7 @@ public:
     small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>& operator=(small_matrix<Tscalar_t, Tnum_rows, Tnum_cols, col_major_storage>&& ) = default;
 
 public:
-    ///TODO figure out if there is a workaround to the
-    ///trivially copiable type in sycl::buffers to support
-    ///implicit conversions
-    // small_matrix(std::array<Tscalar_t, Tnum_rows * Tnum_cols> entries)
-    // {
-    //     for(int i = 0; i < Tnum_rows; i++)
-    //     {
-    //         for(int j = 0; j < Tnum_cols; j++)
-    //         {
-    //             data[flatten_index<num_rows, num_cols, col_major_storage>(i, j)] = entries[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
-    //         }
-    //     }
-    // }
+
     Tscalar_t& operator()(const size_t row, const size_t col)
     {
         return data[flatten_index<num_rows, num_cols, col_major_storage>(row, col)];
@@ -144,7 +132,6 @@ public:
 private:
     static this_t MakeZero()
     {
-        //TODO optimize this with static variable
         this_t ret;
         ret.data = 0;
         return ret;
@@ -159,17 +146,35 @@ private:
         return ret;
     }
 
+    static this_t MakeOnes()
+    {
+        this_t ret = MakeZero();
+        for(int i = 0; i < num_rows; ++i)
+            for(int j = 0; j < num_cols; ++j)
+                ret(i, j) = 1;
+        return ret;
+    }
+
 public:
     static this_t Zero()
     {
-        const static this_t zero = MakeZero();
+        //TODO figure out how to make this const static
+        this_t zero = MakeZero();
         return zero;
     }
 
     static this_t Identity()
     {
-        const static this_t I = MakeIdentity();
+        //TODO figure out how to make this const static
+        this_t I = MakeIdentity();
         return I;
+    }
+
+    static this_t Ones()
+    {
+        //TODO figure out how to make this const static
+        this_t ones = MakeOnes();
+        return ones;
     }
 
 public:
@@ -191,6 +196,25 @@ public:
         data -= other.data;
         return *this;
     }
+
+public:
+    small_matrix<int, num_rows, num_cols, col_major_storage> floor()
+    {
+        small_matrix<int, num_rows, num_cols, col_major_storage> ret = small_matrix<int, num_rows, num_cols, col_major_storage>::Zero();
+        auto floor_data = data.template convert<int, sycl::rounding_mode::rtn>();
+        for(int i = 0; i < num_rows; ++i)
+            for(int j = 0; j < num_cols; ++j)
+                ret(i, j) = floor_data[flatten_index<Tnum_rows, Tnum_cols, false>(i, j)];
+
+        return ret;
+
+    }
+
+    //small_matrix<int, num_rows, num_cols, col_major_storage> get_floor()
+    //{
+    //    return floor(*this);
+    //}
+
 
 };
 
