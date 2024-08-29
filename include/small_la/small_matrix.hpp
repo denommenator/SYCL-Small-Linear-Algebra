@@ -216,6 +216,8 @@ public:
     //}
 
 
+    small_matrix<int, num_rows, num_cols, col_major_storage> floor()
+
 };
 
 template<class Tscalar_t, int Tnum_rows, int Tnum_cols, bool col_major_storage>
@@ -314,7 +316,7 @@ std::enable_if_t<Tnum_rows == 2, small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, c
     scalar_t c = A(1,0);
     scalar_t d = A(1,1);
 
-    scalar_t det;
+    scalar_t det = a * d - b * c;
     ret(0,0) = d / det;
     ret(0,1) = -b / det;
     ret(1,0) = -c / det;
