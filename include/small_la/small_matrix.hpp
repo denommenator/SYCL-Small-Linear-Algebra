@@ -215,9 +215,6 @@ public:
     //    return floor(*this);
     //}
 
-
-    small_matrix<int, num_rows, num_cols, col_major_storage> floor()
-
 };
 
 template<class Tscalar_t, int Tnum_rows, int Tnum_cols, bool col_major_storage>
