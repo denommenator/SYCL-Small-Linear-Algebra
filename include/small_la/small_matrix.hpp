@@ -9,6 +9,8 @@
 
 #include <sycl/sycl.hpp>
 
+#include <cmath>
+
 namespace small_la
 {
 
@@ -320,6 +322,59 @@ std::enable_if_t<Tnum_rows == 2, small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, c
     ret(1,1) = a / det;
 
     return ret;
+
+}
+
+template<class Tscalar_t, int Tnum_rows, bool col_major_storage>
+std::enable_if_t<Tnum_rows == 2, Tscalar_t> det(
+        const small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& A
+)
+{
+    using scalar_t = Tscalar_t;
+
+    scalar_t a = A(0,0);
+    scalar_t b = A(0,1);
+    scalar_t c = A(1,0);
+    scalar_t d = A(1,1);
+
+    return a * d - b * c;
+}
+
+template<class Tscalar_t, int Tnum_rows, bool col_major_storage>
+std::enable_if_t<Tnum_rows == 2, void> PolarDecomposition(
+        const small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& A,
+        small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& R,
+        small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& S
+)
+{
+    using scalar_t = Tscalar_t;
+    using Matrix_t = small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>;
+
+    const scalar_t x = A(0,0) + A(1, 1);
+    const scalar_t y = A(1, 0) - A(0,1);
+
+    const scalar_t norm = std::sqrt(x * x + y * y);
+    const scalar_t c = x / norm;
+    const scalar_t s = y / norm;
+
+    R = Matrix_t(c, s, -s, c);
+    S = transpose(R) * A;
+}
+
+template<class Tscalar_t, int Tnum_rows, bool col_major_storage>
+std::enable_if_t<Tnum_rows == 2, void> SVD(
+        const small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& A,
+        small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& U,
+        small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& Sigma,
+        small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>& V
+)
+{
+    using scalar_t = Tscalar_t;
+    using Matrix_t = small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>;
+    Matrix_t R, S;
+    PolarDecomposition(A, R, S);
+    //TODO finish implementation
+
 
 }
 
