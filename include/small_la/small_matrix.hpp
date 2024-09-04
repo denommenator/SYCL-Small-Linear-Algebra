@@ -61,10 +61,10 @@ private:
 
 public:
     template<typename... Tscalar_dummy>
-    explicit small_matrix(Tscalar_dummy&&... entries) : data(0)
+    explicit small_matrix(const Tscalar_dummy&... entries) : data(0)
     {
         static_assert(sizeof...(entries) == num_rows * num_cols, "Wrong number of entries to a matrix");
-        std::array<scalar_t, num_rows * num_cols> entries_arr = { std::forward<scalar_t>(entries)... };
+        std::array<scalar_t, num_rows * num_cols> entries_arr = { std::forward<const scalar_t>(entries)... };
         for(int i = 0; i < Tnum_rows; i++)
         {
             for(int j = 0; j < Tnum_cols; j++)
@@ -355,10 +355,10 @@ std::enable_if_t<Tnum_rows == 2, void> PolarDecomposition(
 
     const scalar_t norm = std::sqrt(x * x + y * y);
     const scalar_t c = x / norm;
-    const scalar_t s = y / norm;
+    const scalar_t s = -y / norm;
 
     R = Matrix_t(c, s, -s, c);
-    S = transpose(R) * A;
+    S = R.transpose() * A;
 }
 
 template<class Tscalar_t, int Tnum_rows, bool col_major_storage>
@@ -371,10 +371,38 @@ std::enable_if_t<Tnum_rows == 2, void> SVD(
 {
     using scalar_t = Tscalar_t;
     using Matrix_t = small_matrix<Tscalar_t, Tnum_rows, Tnum_rows, col_major_storage>;
-    Matrix_t R, S;
+    Matrix_t R = Matrix_t::Zero(), S = Matrix_t::Zero();
     PolarDecomposition(A, R, S);
-    //TODO finish implementation
-
+    scalar_t c, s, sigma_0, sigma_1;
+    if(S(0,1) == 0.0)
+    {
+        c = 1.0;
+        s = 0.0;
+        sigma_0 = S(0,0);
+        sigma_1 = S(1,1);
+    }
+    else
+    {
+        const scalar_t tau = 0.5 * (S(0,0) - S(1,1));
+        const scalar_t w = std::sqrt(tau * tau + S(0,1) * S(0,1));
+        const scalar_t t = tau > 0 ? S(0,1) / (tau + w) : S(0,1) / (tau - w);
+        c = 1.0 / std::sqrt(t * t + 1);
+        s = -t * c;
+        sigma_0 = c * c * S(0,0) - 2 * c * s * S(0,1) + s * s * S(1,1);
+        sigma_1 = s * s * S(0,0) + 2 * c * s * S(0,1) + c * c * S(1,1);
+    }
+    if(sigma_0 < sigma_1)
+    {
+        std::swap(sigma_0, sigma_1);
+        V = Matrix_t(-s, c, -c, -s);
+    }
+    else
+    {
+        V = Matrix_t(c, s, -s, c);
+    }
+    U = R * V;
+    Sigma(0,0) = sigma_0;
+    Sigma(1,1) = sigma_1;
 
 }
 
