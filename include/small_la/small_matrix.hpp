@@ -21,7 +21,10 @@ int flatten_index(const size_t row, const size_t col)
     {
         return row + num_rows * col;
     }
-    return col + num_cols * row;
+    else
+    {
+        return col + num_cols * row;
+    }
 }
 
 constexpr int packed_size(const int num_rows, const int num_cols)
