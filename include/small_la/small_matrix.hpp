@@ -134,6 +134,18 @@ public:
         return true;
     }
 
+    template<bool Tcol_major_storage_other>
+    scalar_t dot(const small_matrix<scalar_t, num_rows, 1, Tcol_major_storage_other> other)
+    {
+        scalar_t ret = 0;
+        for(int i = 0; i < num_rows; ++i)
+        {
+            ret += data[i] * other.data[i];
+        }
+
+        return ret;
+    }
+
 private:
     static this_t MakeZero()
     {
