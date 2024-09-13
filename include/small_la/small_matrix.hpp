@@ -108,7 +108,7 @@ public:
         return data[index];
     }
 
-    small_matrix<scalar_t, num_cols, num_rows, col_major_storage> transpose()
+    small_matrix<scalar_t, num_cols, num_rows, col_major_storage> transpose() const
     {
         using ret_t = small_matrix<scalar_t, num_cols, num_rows, col_major_storage>;
         ret_t ret = ret_t::Zero();
